@@ -1,97 +1,111 @@
 # CPDINO Compression Lab
 
-**지식 증류와 소형 ViT 백본 이식을 통한 세포 인스턴스 분할 모델 경량화**
+## 출력 지식 증류와 ViT-S 백본 이식을 통한 세포 인스턴스 분할 모델 경량화
 
-CPDINO ViT-L을 교사로 사용해 ViT-B의 출력을 증류하고, 공식 DINOv3 ViT-S 백본에 Cellpose 출력 헤드를 연결해 라벨 지도학습을 수행한 프로젝트입니다. 구현을 Python 모듈, 단위 테스트와 Jupyter 노트북으로 정리했습니다.
+### 초록
 
-**Knowledge distillation and lightweight backbone adaptation for cell instance segmentation.**
+본 연구는 CPDINO 기반 세포 인스턴스 분할에서 Vision Transformer의 규모와 학습 방법에 따른 정확도 및 추론 비용을 비교한다. CPDINO ViT-L을 teacher로 사용하여 기존 ViT-B student에 출력 수준 지식 증류를 적용한다. 별도의 경량화 실험에서는 공식 DINOv3 ViT-S 사전학습 인코더를 CPDINO에 연결하고, 새로 초기화한 출력 헤드와 함께 지도 미세조정한다. 두 실험은 동일한 flow 및 foreground logit 출력 형식을 사용한다. 64장의 test 이미지에서 증류 ViT-B의 AP@0.5와 AP@0.75는 각각 0.8212와 0.7396으로 측정되었다. ViT-S의 최종 test 결과는 수록된 실험 기록 시점에 확보되지 않았다. 저장소는 모델 구성, 손실 함수, 학습 연산 및 체크포인트 복원을 PyTorch 모듈과 실행 가능한 노트북으로 제공한다.
 
-## 두 가지 실험
+### 1. 연구 범위
+
+ViT-B 실험은 기존 분할 모델에 대한 추가 지식 증류이며, ViT-S 실험은 소형 백본 이식 후 지도 미세조정이다. ViT-B student는 직접 미세조정한 CPDINO 체크포인트에서 초기화한다. ViT-S는 일반 시각 표현을 학습한 DINOv3 인코더에서 초기화하며, CPDINO 출력 헤드는 무작위 초기화한다. ViT-S 실험에는 별도의 teacher를 사용하지 않는다.
 
 ```mermaid
 flowchart LR
-    L[CPDINO ViT-L / Pro_ver2] -->|flow + cell logit| KD[출력 수준 지식 증류]
-    B[직접 미세조정한 CPDINO ViT-B] --> KD
-    GT[학습 라벨] --> KD
+    L[CPDINO ViT-L teacher] -->|flow 및 foreground logit| KD[출력 지식 증류]
+    B[직접 미세조정한 ViT-B student] --> KD
+    GT[분할 라벨] --> KD
     KD --> DB[증류 ViT-B]
-    S[공식 DINOv3 ViT-S/16] --> AD[CPDINO 백본 이식 + 새 출력 헤드]
+    S[사전학습 DINOv3 ViT-S] --> AD[CPDINO 출력 헤드 연결]
     AD --> FT[지도 미세조정]
     GT --> FT
     FT --> CS[CPDINO ViT-S]
 ```
 
-- **Output-level knowledge distillation** — 직접 학습한 ViT-B를 초기 학생으로 사용하고, 라벨 손실에 ViT-L의 두 flow 채널과 세포 logit을 따라가는 MSE를 추가했습니다.
-- **Backbone substitution and supervised fine-tuning** — DINOv3 ViT-S/16의 사전학습 인코더를 CPDINO에 연결하고, 새 `Linear(384, 192)` 헤드와 Transformer를 학습했습니다. 이 실험의 teacher weight는 0입니다.
+### 2. 모델 구성
 
-Meta의 공식 DINOv3 S/B/L 가중치는 upstream 사전학습 단계에서 distilled 모델로 제공됩니다. 여기서 출력 증류는 사용자 데이터에 대한 별도 학습 단계입니다.
-
-## 구조 비교
-
-| 항목 | ViT-L | ViT-B | ViT-S |
+| 구성 요소 | ViT-L | ViT-B | ViT-S |
 |---|---:|---:|---:|
-| Transformer 블록 | 24 | 12 | 12 |
-| 임베딩 폭 | 1,024 | 768 | 384 |
-| Attention head | 16 | 12 | 6 |
-| 백본 파라미터 | 303.15 M | 85.67 M | 21.60 M |
+| Transformer blocks | 24 | 12 | 12 |
+| Embedding dimension | 1,024 | 768 | 384 |
+| Attention heads | 16 | 12 | 6 |
+| Head dimension | 64 | 64 | 64 |
+| MLP hidden dimension | 4,096 | 3,072 | 1,536 |
+| 백본 파라미터 수 | 303,154,176 | 85,669,632 | 21,601,152 |
 | 선형 출력 헤드 | 1024 → 192 | 768 → 192 | 384 → 192 |
 
-공통 경로는 16×16 패치 커널, stride 8, padding 4, CLS 1개와 register 4개, 최종 LayerNorm과 선형 출력 헤드입니다. 고정 W2가 토큰별 192개 출력을 8×8×3으로 펼칩니다. Cellpose 후처리는 두 flow 채널과 세포 logit으로 개별 세포 마스크를 생성합니다.
+세 모델은 16×16 패치 커널에 stride 8과 padding 4를 적용한다. 384×384 입력에서 생성되는 2,304개 공간 토큰에 CLS 토큰 1개와 register 토큰 4개를 추가하여 Transformer에 입력한다. 최종 LayerNorm 이후 보조 토큰을 제거하고, 각 공간 토큰을 192차원으로 투영한다. 고정 가중치 `W2`는 이를 8×8×3 픽셀 출력으로 재배열한다. 출력 채널은 수직 flow, 수평 flow 및 foreground logit이며, 인스턴스 마스크는 Cellpose 후처리로 산출한다.
 
-인터랙티브 설명은 [아키텍처 비교 HTML](docs/architecture.html)을 다운로드하여 브라우저로 열 수 있습니다. [설계 및 구현 설명](docs/method.md)과 [포트폴리오 본문](docs/portfolio.ko.md)을 함께 제공합니다.
+### 3. 학습 목적 함수
 
-## 셀 단위로 확인하기
+Student 예측을 $p$, teacher 예측을 $t$, flow 라벨을 $y_f$, 이진 foreground 라벨을 $y_c$로 정의한다. MSE는 해당 텐서 원소 전체의 평균제곱오차이다.
 
-Python 3.11과 PyTorch 2.8을 사용합니다. 사용하는 CPU/CUDA 환경에 맞게 PyTorch를 설치한 뒤, 저장소 폴더에서 Jupyter 또는 VS Code 노트북을 엽니다. 설치 셀은 다음과 같습니다.
+$$
+\mathcal{L}_{\mathrm{task}}=\frac{1}{2}\operatorname{MSE}(p_f,5y_f)+\operatorname{BCEWithLogits}(p_c,y_c)
+$$
+
+$$
+\mathcal{L}_{\mathrm{KD}}=\operatorname{MSE}(p_f,\operatorname{stopgrad}(t_f))+\operatorname{MSE}(p_c,\operatorname{stopgrad}(t_c))
+$$
+
+$$
+\mathcal{L}=\mathcal{L}_{\mathrm{task}}+\lambda\mathcal{L}_{\mathrm{KD}}
+$$
+
+ViT-B 증류에는 $\lambda=1$을 적용하며 teacher의 파라미터를 고정한다. ViT-S에는 $\lambda=0$을 적용한다. 검증 손실은 두 실험 모두 $\mathcal{L}_{\mathrm{task}}$로 계산한다. 구현은 [losses.py](src/cpdino_lab/losses.py)와 [engine.py](src/cpdino_lab/engine.py)에 수록되어 있다.
+
+### 4. 실험 설정
+
+| 설정 | ViT-B 증류 | ViT-S 지도 미세조정 |
+|---|---|---|
+| 초기화 | 직접 미세조정한 CPDINO ViT-B 전체 가중치 | 공식 DINOv3 ViT-S 인코더, 새 출력 헤드 |
+| Teacher | CPDINO ViT-L / Pro_ver2 | 없음 |
+| Train / validation / test | 517 / 64 / 64장 | 517 / 64 / 64장 |
+| 입력 타일 | 384×384 | 384×384 |
+| Batch size | 13 | 29 |
+| Optimizer | AdamW | AdamW |
+| Learning rate / weight decay | 1e-5 / 0.1 | 1e-5 / 0.1 |
+| 목표 학습 길이 | 500 epochs | 500 epochs |
+| 검증 주기 | 첫 epoch 및 이후 10 epochs마다 | 첫 epoch 및 이후 10 epochs마다 |
+| Seed | 20261112 | 20261112 |
+
+패치 투영은 원본 CPDINO forward의 gradient 차단 동작에 따라 고정한다. Transformer와 선형 출력 헤드는 최적화 대상이며, 픽셀 재배열용 `W2`는 고정한다. 설정 파일은 [ViT-B 증류](configs/vitb-distillation.json)와 [ViT-S 지도 미세조정](configs/vits-supervised.json)으로 분리되어 있다.
+
+### 5. 평가 결과
+
+다음은 2026년 11월 13일 16:52 KST에 수록한 기존 학습 실험의 집계값이다. 평가 장치는 NVIDIA GeForce RTX 5090이며, 추론 정밀도는 PyTorch BF16이다.
+
+| 모델 | Cellpose AP@0.5 | AP@0.75 | 세포 수 MAE | 평균 이미지 지연시간 (ms) |
+|---|---:|---:|---:|---:|
+| CPDINO ViT-L / Pro_ver2 | 0.8246 | 0.7443 | 27.5469 | 1,265.5 |
+| 직접 미세조정 ViT-B | 0.8201 | 0.7322 | 25.2656 | 843.7 |
+| 증류 ViT-B | 0.8212 | 0.7396 | 26.6719 | 806.4 |
+| ViT-S | 미수록 | 미수록 | 미수록 | 미수록 |
+
+AP는 IoU 임계값에서의 Cellpose instance matching 점수 `TP / (TP + FP + FN)`를 이미지별로 계산한 뒤 평균한 값이다. 지연시간은 이미지당 3회 측정의 중앙값을 구한 뒤 64장에 대해 평균하였으며, 디스크 읽기와 모델 로딩은 제외하였다. 평가의 세부 설정과 원본 결과 파일 해시는 [historical-summary.json](results/historical-summary.json)에 기록되어 있다.
+
+증류 ViT-B의 AP@0.75는 직접 미세조정 ViT-B보다 0.0074 높았으나, 세포 수 MAE는 증가하였다. 두 ViT-B 모델의 아키텍처는 동일하다. GPU 동시 작업 통제와 반복 실험의 분산이 기록되지 않았으므로 관측된 지연시간 차이를 증류의 효과로 단정할 수 없다. 일부 평가 라벨에는 모델 기반 생성 이력이 있다. 또한 ViT-B와 ViT-S는 초기 가중치 및 출력 헤드의 학습 이력이 다르므로, 두 모델의 비교에는 아키텍처 외의 요인이 포함된다.
+
+### 6. 구현과 실행
+
+Python 3.11과 PyTorch 2.8을 사용하며, Cellpose 4.2.1.1과 DINOv3의 특정 커밋을 의존성으로 지정한다. Jupyter 또는 VS Code에서 저장소를 연 뒤 설치 셀을 실행한다.
 
 ```python
 %pip install -e ".[dev]"
 ```
 
-| 노트북 | 실행 단위 | 입력 |
+| 노트북 | 실행 범위 | 입력 |
 |---|---|---|
-| [01 — 모델과 한 번의 학습](notebooks/01_units.ipynb) | 실제 DINO 블록 forward → loss → 증류 step → checkpoint 복원 → pytest | 합성 텐서, CPU |
-| [02 — 실험 재현](notebooks/02_training.ipynb) | 설정 → 경로 검사 → 가중치 초기화 → 한 batch → 한 epoch → 검증 → 저장/재개 | 사용자 데이터와 가중치 |
-| [03 — 결과 읽기](notebooks/03_results.ipynb) | 기록 로딩 → 정확도·속도 비교 → 제한 사항 | 저장된 집계 결과 |
+| [01 — 구성 요소 검증](notebooks/01_units.ipynb) | Forward, 손실, optimizer step, 체크포인트 복원, 단위 테스트 | CPU 합성 텐서 |
+| [02 — 학습 및 검증](notebooks/02_training.ipynb) | 설정, 데이터 로딩, 가중치 초기화, 한 batch, 한 epoch, 검증 및 재개 | 로컬 데이터와 가중치 |
+| [03 — 평가 결과](notebooks/03_results.ipynb) | 기존 실험 집계값 로딩 및 비교 | 공개 결과 JSON |
 
-첫 번째 노트북의 작은 DINO 모델은 실제 모델 코드를 빠르게 검증하는 장치입니다. 실제 ViT-S 초기화와 학습은 두 번째 노트북에 있습니다. 각 코드 셀은 출력 또는 assert로 동작을 확인합니다.
+데이터 디렉터리는 `train` 또는 `train_eligible`, `valid`, `test`로 구성한다. 학습·검증 이미지는 `.jpg`이며, 대응 라벨은 같은 stem의 `_flows.tif`이다. Flow TIFF의 채널 순서는 `[instance IDs, foreground, flow_y, flow_x]`이고, 배치 구성 시 instance ID 채널을 제거한다. 데이터와 가중치 경로 및 SHA-256은 [local-paths.example.json](configs/local-paths.example.json)을 기준으로 저장소 루트의 `local_paths.json`에 지정한다. 데이터와 가중치는 저장소에 포함하지 않는다.
 
-단위 테스트도 노트북에서 실행할 수 있습니다.
+공개 구현은 모델 forward와 손실 계산을 원본 실험 코드에서 분리한 것이다. 단위 검증 및 가중치 호환성 검사는 수행되었으나, 공개 모듈로 500 epoch 전체 실험을 재실행하지는 않았다. 학습 노트북은 epoch 경계의 `last.pt` 저장과 재개를 지원한다. 원본 학습기의 validation 기반 `best.pt` 선정은 현재 노트북에 포함되어 있지 않다. 검증 범위는 [verification.md](docs/verification.md)에 명시한다.
 
-```python
-import pytest
-assert pytest.main(["tests", "-q"]) == pytest.ExitCode.OK
-```
+### 7. 문서 및 기반 구현
 
-데이터는 `train` 또는 `train_eligible`, `valid`, `test` 폴더로 나눕니다. 이미지는 `.jpg`, 학습·검증 라벨은 동일 이름의 `_flows.tif`를 사용합니다. Flow TIFF의 채널은 `[instance IDs, foreground, flow_y, flow_x]`입니다. 배치 생성 시 ID 채널을 제거합니다. 테스트 마스크는 `_masks.tif`입니다.
+연구 배경, 방법과 결과 해석은 [연구 보고서](docs/study.ko.md)에, 텐서 규격과 모듈별 동작은 [구현 명세](docs/method.md)에 기술한다. [아키텍처 비교 HTML](docs/architecture.html)은 다운로드 후 브라우저에서 실행할 수 있다.
 
-`configs/local-paths.example.json`을 참고해 저장소 루트에 `local_paths.json`을 작성합니다. 파일 경로와 SHA-256은 사용하려는 체크포인트에 맞춰 설정합니다. 원본 이미지와 모델 파일은 각자의 로컬 환경에서 연결합니다. 공식 DINOv3 가중치 다운로드는 Meta가 안내하는 접근 절차를 따릅니다.
-
-## 관측한 결과
-
-2026-11-13에 기존 실험 산출물에서 읽은 집계값입니다. 재구성한 이 저장소로 전체 실험을 다시 수행한 결과는 별도 기록이 필요합니다.
-
-| 모델 | Cellpose AP@0.5 | AP@0.75 | 이미지 지연시간 평균 |
-|---|---:|---:|---:|
-| Pro_ver2 · ViT-L | 0.8246 | 0.7443 | 1,265.5 ms |
-| 직접 학습 ViT-B | 0.8201 | 0.7322 | 843.7 ms |
-| 증류 ViT-B | 0.8212 | 0.7396 | 806.4 ms |
-| ViT-S | 최종 평가 대기 | 최종 평가 대기 | 최종 평가 대기 |
-
-평가는 독립 test split 64장, PyTorch BF16 기준입니다. AP는 Cellpose의 instance matching 점수이며 이미지별 `TP / (TP + FP + FN)`을 평균합니다. 이미지당 3회 측정의 중앙값을 구한 뒤 평균한 지연시간이며 파일 읽기와 모델 로딩을 제외합니다. 일부 라벨은 AI 기반 생성 이력이 있고, GPU 동시 작업과 반복 실험 분산은 통제 여부가 기록되지 않았습니다. 증류 B와 직접 학습 B의 작은 점수 차이는 이 평가셋의 관측값입니다.
-
-[집계 JSON](results/historical-summary.json)에 원본 결과 파일 SHA-256, 평가 설정과 확인 시점을 보존했습니다. 이미지 ID, 사용자 절대 경로와 학습 이미지는 이 집계에 포함하지 않습니다.
-
-## 코드 단위
-
-- `models.py` — 인코더 주입, upstream CPDINO forward 재사용, S/B/L 생성
-- `weights.py` — SHA-256 검증, 공식 Hugging Face 텐서 변환, raw/wrapped checkpoint 로딩
-- `losses.py` — Cellpose 지도 손실과 출력 증류 손실
-- `data.py` — split 중복 검사, 파일 쌍 연결, Cellpose 배치 증강
-- `engine.py` — 한 번의 optimizer step와 sample-weighted 검증
-- `checkpoints.py` — 모델·optimizer·RNG의 원자적 저장과 복원
-
-현재 코드는 원본 실행 스크립트를 모듈로 재구성했습니다. 원본은 백본 생성 함수를 임시 교체했고, 여기서는 인코더를 명시적으로 주입합니다. 패치 투영은 upstream `.data` 사용으로 고정되는 동작을 `requires_grad=False`로 명시했습니다. 원본 학습 실행 파일과 초기 가중치 해시는 결과 기록에 남겼습니다.
-
-## 기반 프로젝트
-
-[Cellpose](https://github.com/MouseLand/cellpose)의 CPDINO 구현과 [DINOv3](https://github.com/facebookresearch/dinov3)의 백본 및 가중치를 사용합니다. 이 저장소의 기여는 백본 연결, 출력 증류 실험, 재현 단위 구성과 검증입니다. 사용 조건과 출처는 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)에 정리했습니다.
+기반 구현은 [Cellpose CPDINO](https://github.com/MouseLand/cellpose/blob/main/cellpose/vit.py)와 [Meta DINOv3](https://github.com/facebookresearch/dinov3)이다. 본 저장소는 이들 구현을 이용한 출력 증류, ViT-S 백본 연결 및 실험 실행 코드를 제공한다. 라이선스와 출처는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 기재한다.

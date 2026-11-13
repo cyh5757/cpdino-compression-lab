@@ -1,4 +1,4 @@
-# Verification record
+# Implementation validation
 
 Verified on 2026-11-13 using Python 3.11, PyTorch 2.8.0+cu128, Cellpose 4.2.1.1 and the pinned DINOv3 commit. Model operations used CPU.
 
@@ -6,8 +6,16 @@ Verified on 2026-11-13 using Python 3.11, PyTorch 2.8.0+cu128, Cellpose 4.2.1.1 
 - All three notebooks executed in a real Jupyter kernel from the `notebooks/` working directory. Notebook 01 performs an actual tiny-DINO training step and checkpoint round trip. Notebook 02 was run in its default inspection mode, with private-data loading and full-epoch execution disabled. Notebook 03 renders the historical aggregate results.
 - The public model factory loaded the official ViT-S encoder and produced a finite `[1, 3, 64, 64]` output. It also loaded the original project's ViT-S 310-epoch checkpoint with `strict=True` and produced a finite output.
 - A wheel was built and its package import/model construction checked in a separate target installation. The Cellpose license and third-party notices are included in the wheel.
-- A separate code review identified a relative-path issue in Notebook 02. The correction resolves paths against `local_paths.json` and is covered by a regression test.
+- Notebook 02 resolves relative data and checkpoint paths against `local_paths.json`. This behavior is covered by a regression test.
+
+## Numerical comparison with the original implementation
+
+The original ViT-S constructor and the public model factory were initialized with seed 100 on CPU. All state-dict keys and tensors were identical. Both models received the same synthetic input of shape `[1, 3, 64, 64]`. Seed 20 was restored before each forward to align training-time masks. The maximum absolute difference in the segmentation output was 0 in both training and evaluation modes. The auxiliary compatibility output was excluded from the comparison.
+
+The original and public loss functions were also compared on synthetic tensors of shape `[2, 3, 16, 16]`. Supervised loss, distillation loss and their gradients with respect to the prediction were identical for these inputs. These checks establish equivalence for the tested cases and do not establish equivalence of complete training trajectories across devices or library versions.
+
+## Full-experiment reproduction
 
 The historical 500-epoch experiments were not rerun by this verification. The original training and evaluation results are recorded separately in `results/historical-summary.json`. The isolated notebook tests use synthetic input and validate program behavior, not segmentation accuracy.
 
-The existing Windows runtime emitted a pyreadline console-cleanup message in some shell runs after pytest completed. The notebook kernel tests completed successfully. Jupyter also emitted a local TCP transport warning during kernel startup.
+Notebook 02 saves and restores `last.pt` at epoch boundaries. The original campaign's validation-based `best.pt` selection is not implemented in the public notebook. Its default inspection mode does not execute private-data training. Reproducing the reported scores requires the original inputs, initialization and evaluation procedure, with a separate execution record for the modular implementation.

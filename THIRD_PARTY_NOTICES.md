@@ -18,6 +18,6 @@ License — https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md
 
 Official encoder — https://huggingface.co/facebook/dinov3-vits16-pretrain-lvd1689m
 
-## Portfolio code
+## Project code
 
-The original experiment scripts were modularized for this portfolio. Third-party rights remain with their respective owners. No additional blanket license has been selected for the original portfolio code in this initial publication.
+The project code implements output-level distillation, ViT-S backbone adaptation and experiment execution using the dependencies identified above. Third-party rights remain with their respective owners. No additional blanket license has been selected for the original project code.
