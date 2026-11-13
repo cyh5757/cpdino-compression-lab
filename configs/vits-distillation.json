@@ -1,0 +1,16 @@
+{
+  "name": "vits-distillation",
+  "student": "vits",
+  "training_split": "train_eligible",
+  "initialization_key": "vits_model",
+  "initialization_scope": "model",
+  "teacher": "vitl",
+  "teacher_weight": 1.0,
+  "epochs": 500,
+  "batch_size": 13,
+  "tile_size": 384,
+  "learning_rate": 0.00001,
+  "weight_decay": 0.1,
+  "validation_interval": 10,
+  "seed": 20261112
+}

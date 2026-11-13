@@ -1,6 +1,19 @@
 {
   "dataset_root": "data/converted",
-  "vits_encoder": {"path": "weights/dinov3-vits16.safetensors", "sha256": "4610ad75edef83e75afdebf162d148dc628045ea6cbb83d67d4708c709c4f91d"},
-  "vitb_model": {"path": "weights/direct-vitb.pth", "sha256": "0d8e74aea5c6ca6fa66dd0d91e3a9780e53a2ba740f345e47f593721320f38bd"},
-  "vitl_model": {"path": "weights/pro-ver2.pth", "sha256": "7fc06dfceaf965bf3c2f44b6422438179ddcc1e81c59041340333221678ee384"}
+  "vits_encoder": {
+    "path": "weights/dinov3-vits16.safetensors",
+    "sha256": "4610ad75edef83e75afdebf162d148dc628045ea6cbb83d67d4708c709c4f91d"
+  },
+  "vitb_model": {
+    "path": "weights/direct-vitb.pth",
+    "sha256": "0d8e74aea5c6ca6fa66dd0d91e3a9780e53a2ba740f345e47f593721320f38bd"
+  },
+  "vitl_model": {
+    "path": "weights/cpdino-vitl.pth",
+    "sha256": "7fc06dfceaf965bf3c2f44b6422438179ddcc1e81c59041340333221678ee384"
+  },
+  "vits_model": {
+    "path": "weights/cpdino-vits-supervised.pt",
+    "sha256": "132c04eba1d57395a898fab454b4e577607250e34289302eb970761bd7d8dab3"
+  }
 }

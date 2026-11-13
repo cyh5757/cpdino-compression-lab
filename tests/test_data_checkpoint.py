@@ -18,11 +18,13 @@ def test_local_paths_are_relative_to_config_file_not_notebook_cwd(tmp_path, monk
     path = tmp_path / 'local_paths.json'
     path.write_text(json.dumps({'dataset_root':'data/converted',
         'vits_encoder':{'path':'weights/encoder.pth','sha256':'a'},
+        'vits_model':{'path':'weights/supervised-s.pt','sha256':'c'},
         'vitl_model':{'path':str(absolute_weight),'sha256':'b'}}))
     monkeypatch.chdir(notebook_dir)
     config = read_local_paths(path)
     assert config['dataset_root'] == str(tmp_path / 'data/converted')
     assert config['vits_encoder']['path'] == str(tmp_path / 'weights/encoder.pth')
+    assert config['vits_model']['path'] == str(tmp_path / 'weights/supervised-s.pt')
     assert config['vitl_model']['path'] == str(absolute_weight)
 
 
@@ -49,6 +51,18 @@ def test_missing_flow_file_is_rejected(tmp_path):
     (tmp_path / 'valid/1_flows.tif').unlink()
     with pytest.raises(ValueError):
         discover_splits(tmp_path)
+
+
+def test_explicit_eligible_training_split_ignores_unselected_train_folder(tmp_path):
+    write_dataset(tmp_path)
+    (tmp_path/'train').rename(tmp_path/'train_eligible')
+    (tmp_path/'train').mkdir()
+    (tmp_path/'train/unused.jpg').write_bytes(b'unselected')
+    with pytest.raises(ValueError,match='only one'):
+        discover_splits(tmp_path)
+    selected=discover_splits(tmp_path,training_split='train_eligible')
+    assert len(selected['train'])==1
+    assert selected['train'][0].image.parent.name=='train_eligible'
 
 
 def test_split_overlap_is_rejected(tmp_path):

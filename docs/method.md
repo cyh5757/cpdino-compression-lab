@@ -10,7 +10,7 @@ L_KD   = MSE(p_flow, stopgrad(t_flow)) + MSE(p_cell, stopgrad(t_cell))
 L      = L_task + lambda × L_KD
 ```
 
-The historical ViT-B run uses lambda 1, a directly fine-tuned ViT-B student and a frozen Pro_ver2 ViT-L teacher. Validation uses only L_task so comparisons are independent of the teacher target. This is dense output regression distillation. The recipe matches flow values and raw foreground logits.
+The historical ViT-B run uses lambda 1, a directly fine-tuned ViT-B student and a frozen CPDINO ViT-L teacher. Validation uses only L_task so comparisons are independent of the teacher target. This is dense output regression distillation. The recipe matches flow values and raw foreground logits.
 
 ## ViT-S backbone substitution
 
@@ -36,7 +36,7 @@ The Transformers checkpoint conversion joins Q/K/V, inserts the zero K bias, map
 
 Upstream CPDINO applies the patch projection using `.data`; this blocks gradients into its weights. The adapter marks these parameters frozen explicitly. Transformer blocks and the linear readout are optimized. W2 and diameter parameters are fixed. The inherited mask token is unused by this segmentation forward path.
 
-The historical S experiment uses lambda 0, AdamW, LR 1e-5, weight decay 0.1, 500 epochs, batch 29, 384-pixel tiles and validation every 10 epochs. B distillation uses batch 13. Exact dataset iteration is in the notebook, and checkpoint metadata includes the recipe and dataset file manifest fingerprint.
+The completed supervised S experiment uses lambda 0, AdamW, LR 1e-5, weight decay 0.1, 500 epochs, batch 29, 384-pixel tiles and validation every 10 epochs. B distillation uses batch 13. Exact dataset iteration is in the notebook, and checkpoint metadata includes the recipe and dataset file manifest fingerprint.
 
 ## Reproduction limits
 
@@ -46,4 +46,12 @@ Notebook resumptions are supported at epoch boundaries. NumPy, Python and Torch 
 
 Direct B starts from a Cellpose segmentation checkpoint. S starts from a general DINOv3 encoder with a newly initialized segmentation head. An architecture-only accuracy comparison would require controlling this initialization difference as well as data, training budget and evaluation settings.
 
-The training notebook saves `last.pt` at epoch boundaries. The original campaign selected `best.pt` by supervised validation loss; automatic best-checkpoint selection is not implemented in the public notebook. Historical test scores therefore refer to the original campaign artifacts.
+Historical test scores refer to the original campaign artifacts. Additional ViT-S distillation uses the public training units described below.
+
+## ViT-S output distillation
+
+The additional S experiment initializes the complete student model from the selected 500-epoch supervised S checkpoint. It uses the same frozen CPDINO ViT-L teacher and output loss as B distillation, with teacher weight 1, batch size 13 and 500 additional epochs. Encoder-only initialization remains a separate supervised recipe. `prepare_models` resolves the configured initialization key and scope explicitly.
+
+`train_epoch` executes one epoch over the selected `train_eligible` split, validates using the supervised loss and records progress. `EpochStore` stores both the minimum-validation-loss checkpoint and the latest optimizer/RNG state, including best loss and best epoch for resumption. The notebook uses a separate run directory from an unattended run.
+
+The supervised S test evaluation is complete. Additional S distillation metrics remain pending until its selected checkpoint is evaluated under the same 64-image BF16 protocol. `evaluation.py` provides instance matching metrics, per-image median latency aggregation and an aggregate export that excludes sample identifiers.

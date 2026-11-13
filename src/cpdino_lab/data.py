@@ -13,7 +13,7 @@ def read_local_paths(path: str | Path) -> dict:
     path = Path(path).resolve()
     values = json.loads(path.read_text(encoding='utf8'))
     values['dataset_root'] = str(path.parent / values['dataset_root'])
-    for key in ('vits_encoder', 'vitb_model', 'vitl_model'):
+    for key in ('vits_encoder', 'vits_model', 'vitb_model', 'vitl_model'):
         if key in values:
             values[key]['path'] = str(path.parent / values[key]['path'])
     return values
@@ -26,16 +26,21 @@ class Sample:
     mask: Path
 
 
-def discover_splits(root: str | Path) -> dict[str, list[Sample]]:
+def discover_splits(root: str | Path, training_split: str | None = None) -> dict[str, list[Sample]]:
     """Read train (or train_eligible), valid and test; reject overlap by image stem."""
     root = Path(root)
     result, seen = {}, set()
-    if (root / 'train').exists() and (root / 'train_eligible').exists():
+    if training_split not in (None, 'train', 'train_eligible'):
+        raise ValueError('training_split must be train or train_eligible')
+    if training_split is None and (root / 'train').exists() and (root / 'train_eligible').exists():
         raise ValueError('Use only one training directory: train or train_eligible')
     for split in ('train', 'valid', 'test'):
         folder = root / split
-        if split == 'train' and not folder.exists():
-            folder = root / 'train_eligible'
+        if split == 'train':
+            if training_split is not None:
+                folder = root / training_split
+            elif not folder.exists():
+                folder = root / 'train_eligible'
         images = sorted(folder.glob('*.jpg'))
         if not images:
             raise ValueError(f'Empty split: {folder}')

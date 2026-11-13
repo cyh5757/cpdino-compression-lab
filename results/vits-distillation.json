@@ -1,0 +1,14 @@
+{
+  "model": "distilled_vits",
+  "status": "running",
+  "recorded_at": "2026-11-13T20:42:24+09:00",
+  "epochs": 500,
+  "teacher": "CPDINO ViT-L",
+  "teacher_checkpoint_sha256": "7fc06dfceaf965bf3c2f44b6422438179ddcc1e81c59041340333221678ee384",
+  "student_initialization": "Completed 500-epoch supervised CPDINO ViT-S",
+  "student_initialization_sha256": "132c04eba1d57395a898fab454b4e577607250e34289302eb970761bd7d8dab3",
+  "initialization_scope": "model",
+  "teacher_weight": 1.0,
+  "evaluation_status": "pending",
+  "note": "Training status is a publication-time snapshot; no final distillation metrics are reported."
+}
