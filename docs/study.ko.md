@@ -37,7 +37,7 @@ ViT-S 인코더는 공식 `facebook/dinov3-vits16-pretrain-lvd1689m` 가중치�
 Student 출력은 $p=(p_f,p_c)$로 표기한다. $p_f$는 두 flow 채널이며 $p_c$는 foreground logit이다. 라벨 텐서에서 instance ID 채널을 제거한 뒤 foreground와 두 flow 채널을 사용한다. Foreground 라벨은 0.5를 기준으로 이진화한다. 지도 손실은 다음과 같다.
 
 $$
-\mathcal{L}_{\mathrm{task}}=\frac{1}{2}\operatorname{MSE}(p_f,5y_f)+\operatorname{BCEWithLogits}(p_c,y_c).
+\mathcal{L}_{\mathrm{task}}=\frac{1}{2}\mathrm{MSE}(p_f,5y_f)+\mathrm{BCEWithLogits}(p_c,y_c).
 $$
 
 Flow 라벨의 배율 5와 MSE 계수 1/2는 원본 학습 코드의 설정을 유지한다. 각 손실 항은 해당 텐서 원소에 대해 평균한다.
@@ -47,10 +47,16 @@ Flow 라벨의 배율 5와 MSE 계수 1/2는 원본 학습 코드의 설정을 �
 Teacher는 Pro_ver2 CPDINO ViT-L 체크포인트로 초기화하고 모든 파라미터를 고정한다. Student는 분할 데이터로 직접 미세조정한 CPDINO ViT-B 체크포인트에서 초기화한다. 동일한 증강 입력에 대해 teacher와 student의 출력을 계산하고, 지도 손실에 다음 증류 항을 추가한다.
 
 $$
-\mathcal{L}_{\mathrm{KD}}=\operatorname{MSE}(p_f,\operatorname{stopgrad}(t_f))+\operatorname{MSE}(p_c,\operatorname{stopgrad}(t_c)).
+\mathcal{L}_{\mathrm{KD}}=\mathrm{MSE}(p_f,\mathrm{stopgrad}(t_f))+\mathrm{MSE}(p_c,\mathrm{stopgrad}(t_c)).
 $$
 
-전체 학습 손실은 $\mathcal{L}=\mathcal{L}_{\mathrm{task}}+\lambda\mathcal{L}_{\mathrm{KD}}$이며, $\lambda=1$로 설정한다. Foreground에 대한 증류는 sigmoid 적용 전 logit을 회귀 대상으로 사용한다. Teacher는 평가 모드 및 `no_grad()`에서 실행한다. 두 모델의 내부 특징 차원은 달라도 최종 출력 형태가 동일하므로 별도의 특징 투영 없이 출력 손실을 계산할 수 있다.
+전체 학습 손실은 다음과 같으며, $\lambda=1$로 설정한다.
+
+$$
+\mathcal{L}=\mathcal{L}_{\mathrm{task}}+\lambda\mathcal{L}_{\mathrm{KD}}
+$$
+
+Foreground에 대한 증류는 sigmoid 적용 전 logit을 회귀 대상으로 사용한다. Teacher는 평가 모드 및 `no_grad()`에서 실행한다. 두 모델의 내부 특징 차원은 달라도 최종 출력 형태가 동일하므로 별도의 특징 투영 없이 출력 손실을 계산할 수 있다.
 
 ### 3.3. ViT-S 지도 미세조정
 

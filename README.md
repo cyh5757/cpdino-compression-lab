@@ -41,11 +41,11 @@ flowchart LR
 Student 예측을 $p$, teacher 예측을 $t$, flow 라벨을 $y_f$, 이진 foreground 라벨을 $y_c$로 정의한다. MSE는 해당 텐서 원소 전체의 평균제곱오차이다.
 
 $$
-\mathcal{L}_{\mathrm{task}}=\frac{1}{2}\operatorname{MSE}(p_f,5y_f)+\operatorname{BCEWithLogits}(p_c,y_c)
+\mathcal{L}_{\mathrm{task}}=\frac{1}{2}\mathrm{MSE}(p_f,5y_f)+\mathrm{BCEWithLogits}(p_c,y_c)
 $$
 
 $$
-\mathcal{L}_{\mathrm{KD}}=\operatorname{MSE}(p_f,\operatorname{stopgrad}(t_f))+\operatorname{MSE}(p_c,\operatorname{stopgrad}(t_c))
+\mathcal{L}_{\mathrm{KD}}=\mathrm{MSE}(p_f,\mathrm{stopgrad}(t_f))+\mathrm{MSE}(p_c,\mathrm{stopgrad}(t_c))
 $$
 
 $$
