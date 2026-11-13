@@ -1,0 +1,94 @@
+{
+  "recorded_at": "2026-11-13T16:52:06.202334+09:00",
+  "origin": "Imported historical campaign results, not a rerun of the modular repository",
+  "test_images": 64,
+  "precision": "PyTorch BF16",
+  "reported_device": "NVIDIA GeForce RTX 5090",
+  "limitations": [
+    "Labels include AI-origin annotations",
+    "Timing excludes disk reads and model loading",
+    "GPU concurrency control and repeated-run confidence intervals were not recorded"
+  ],
+  "source_training_script_sha256": "4ffc752df49f1e375de62acebc6004bbe618d6f269729e47feb29a8758b2e9a7",
+  "models": [
+    {
+      "model": "pro_ver2",
+      "ap50": 0.824576917802915,
+      "ap75": 0.7443435264285654,
+      "count_mae": 27.546875,
+      "mean_image_ms": 1265.522000000601,
+      "tiles_per_second": 57.2634093566271,
+      "settings": {
+        "channel_axis": -1,
+        "normalize": true,
+        "diameter": null,
+        "batch_size": 8,
+        "bsize": 384,
+        "tile_overlap": 0.1,
+        "cellprob_threshold": -1.0,
+        "flow_threshold": 0.4,
+        "min_size": 15,
+        "resample": true,
+        "niter": null,
+        "augment": false
+      },
+      "source_result_sha256": "8a82a1d8a351868513a8b28cdb6aec6a804f9c5a14d91160a6755a316e4c5f24"
+    },
+    {
+      "model": "direct_vitb",
+      "ap50": 0.8200926552526653,
+      "ap75": 0.7322450745850801,
+      "count_mae": 25.265625,
+      "mean_image_ms": 843.7431984375507,
+      "tiles_per_second": 166.9211244427879,
+      "settings": {
+        "channel_axis": -1,
+        "normalize": true,
+        "diameter": null,
+        "batch_size": 8,
+        "bsize": 384,
+        "tile_overlap": 0.1,
+        "cellprob_threshold": -1.0,
+        "flow_threshold": 0.4,
+        "min_size": 15,
+        "resample": true,
+        "niter": null,
+        "augment": false
+      },
+      "source_result_sha256": "9ace2406363441d7266c9806c33fc3fcdd614b8807cde670167c89a3eeb652e0"
+    },
+    {
+      "model": "distilled_vitb",
+      "ap50": 0.8211860426235944,
+      "ap75": 0.7396442793542519,
+      "count_mae": 26.671875,
+      "mean_image_ms": 806.4358656242803,
+      "tiles_per_second": 169.03420135109607,
+      "settings": {
+        "channel_axis": -1,
+        "normalize": true,
+        "diameter": null,
+        "batch_size": 8,
+        "bsize": 384,
+        "tile_overlap": 0.1,
+        "cellprob_threshold": -1.0,
+        "flow_threshold": 0.4,
+        "min_size": 15,
+        "resample": true,
+        "niter": null,
+        "augment": false
+      },
+      "source_result_sha256": "dced3043648bce90917af093c517837781cffc4c2f720f886f568d87da32c190"
+    }
+  ],
+  "vits": {
+    "status": "training; final test evaluation pending",
+    "epoch": 317,
+    "epochs": 500,
+    "train_loss": 0.17422543696670054,
+    "validation_loss": null,
+    "best_loss": 0.14115188270807266,
+    "best_epoch": 310,
+    "seconds": 67.59507465362549
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "vits-supervised",
+  "student": "vits",
+  "initialization_scope": "encoder",
+  "teacher": null,
+  "teacher_weight": 0.0,
+  "epochs": 500,
+  "batch_size": 29,
+  "tile_size": 384,
+  "learning_rate": 0.00001,
+  "weight_decay": 0.1,
+  "validation_interval": 10,
+  "seed": 20261112
+}

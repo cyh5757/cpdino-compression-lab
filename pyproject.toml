@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cpdino-compression-lab"
+version = "0.1.0"
+description = "Unit-testable CPDINO knowledge distillation and ViT-S backbone adaptation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["torch>=2.8,<2.9", "cellpose==4.2.1.1", "numpy>=1.26,<2", "safetensors>=0.6", "dinov3 @ git+https://github.com/facebookresearch/dinov3.git@6876159a11b4df116f30f667f8c9888617df0751"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "jupyterlab>=4", "nbclient>=0.10", "ipykernel>=6"]
+
+[project.urls]
+Repository = "https://github.com/cyh5757/cpdino-compression-lab"
+
+[tool.setuptools]
+license-files = ["licenses/*.txt", "THIRD_PARTY_NOTICES.md"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
