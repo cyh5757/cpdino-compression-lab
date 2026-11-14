@@ -54,4 +54,4 @@ The additional S experiment initializes the complete student model from the sele
 
 `train_epoch` executes one epoch over the selected `train_eligible` split, validates using the supervised loss and records progress. `EpochStore` stores both the minimum-validation-loss checkpoint and the latest optimizer/RNG state, including best loss and best epoch for resumption. The notebook uses a separate run directory from an unattended run.
 
-The supervised S test evaluation is complete. Additional S distillation metrics remain pending until its selected checkpoint is evaluated under the same 64-image BF16 protocol. `evaluation.py` provides instance matching metrics, per-image median latency aggregation and an aggregate export that excludes sample identifiers.
+The supervised S test evaluation is complete. Additional S distillation completed 500 epochs; the checkpoint selected at epoch 470 was evaluated under the same 64-image BF16 protocol. `evaluation.py` provides instance matching metrics, per-image median latency aggregation and an aggregate export that excludes sample identifiers.

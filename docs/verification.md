@@ -23,3 +23,7 @@ Notebook 02 now uses `EpochStore` to save best/last checkpoints and restore vali
 ## Additional ViT-S distillation validation
 
 Tests cover full-model S initialization, frozen teacher parameters, optimizer isolation, explicit selection of `train_eligible`, best-checkpoint selection across resume, rejection of nonfinite validation loss, complete epoch iteration and instance-level metric aggregation. The real 500-epoch supervised S checkpoint and ViT-L teacher passed a CUDA smoke run using 13 training images and 2 validation images. Peak allocated GPU memory was 11.98 GiB and teacher gradients remained absent. The full 500-epoch additional distillation run is tracked separately; its final segmentation metrics are not inferred from this smoke test.
+
+## Completed ViT-S distillation
+
+The public training units completed 500 additional epochs. The checkpoint selected at epoch 470 was evaluated on 64 independent test images using the recorded BF16 protocol. Its SHA-256 is `0ee39d2d8bd26c1b3b5514359d3d503ae3c150f04d0be7c21f132268c466d0d7`. Aggregate metrics are recorded in `results/vits-distillation.json`.
